@@ -234,11 +234,19 @@ def main():
     if "--self-check" in sys.argv:
         self_check()
         return
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    source, cache, out = SOURCE, CACHE, OUT
+    if args:
+        if len(args) != 3:
+            raise SystemExit(
+                "usage: python classify.py [comments.json classifications.json report.html]"
+            )
+        source, cache, out = args
     account, token = load_creds(CREDS)
-    course = json.load(open(SOURCE, encoding="utf-8"))
+    course = json.load(open(source, encoding="utf-8"))
     comments = course["comments"]
     try:
-        done = json.load(open(CACHE, encoding="utf-8"))
+        done = json.load(open(cache, encoding="utf-8"))
     except FileNotFoundError:
         done = []
     by_id = {row["id"]: row for row in done}
@@ -248,13 +256,13 @@ def main():
         result = classify(account, token, comment)
         by_id[comment["id"]] = result
         done.append(result)
-        json.dump(done, open(CACHE, "w", encoding="utf-8"), indent=2)
+        json.dump(done, open(cache, "w", encoding="utf-8"), indent=2)
         print(f"{result['id']:>3}  {result['choice']:<12} {result['confidence']}", flush=True)
     missing = [c["id"] for c in comments if c["id"] not in by_id]
     if missing:
         raise SystemExit(f"missing classifications: {missing}")
-    open(OUT, "w", encoding="utf-8").write(render(course, comments, by_id))
-    print(f"wrote {OUT} ({len(comments)} comments)")
+    open(out, "w", encoding="utf-8").write(render(course, comments, by_id))
+    print(f"wrote {out} ({len(comments)} comments)")
 
 
 if __name__ == "__main__":
